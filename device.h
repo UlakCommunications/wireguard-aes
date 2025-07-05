@@ -58,10 +58,12 @@ struct wg_device {
 	unsigned int num_peers, device_update_gen;
 	u32 fwmark;
 	u16 incoming_port;
-	struct crypto_skcipher *tfm_aes_gcm;
+    struct crypto_skcipher *tfm_aes_gcm;
+    bool is_chacha;
 };
 
 int wg_device_init(void);
 void wg_device_uninit(void);
+static struct crypto_skcipher *init_cipher_fallback(bool *);
 
 #endif /* _WG_DEVICE_H */

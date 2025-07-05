@@ -245,7 +245,7 @@ static void keep_key_fresh(struct wg_peer *peer)
 	}
 }
 
-static bool decrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair, struct crypto_skcipher *tfm_aes_gcm)
+static bool decrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair, struct crypto_skcipher *tfm_aes_gcm, bool is_chacha)
 {
 	struct scatterlist sg[MAX_SKB_FRAGS + 8];
 	struct sk_buff *trailer;
@@ -287,14 +287,18 @@ static bool decrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair, s
 		return false;
 
 	// 🔑 Use actual session key
-	u8 *key = keypair->receiving.key;
-	if (crypto_skcipher_setkey(tfm_aes_gcm, key, 32)) // AES-256
+	u8 *key = is_chacha ? keypair->receiving.chacha_key : keypair->receiving.key;
+	size_t key_len = 32;
+	if (crypto_skcipher_setkey(tfm, key, key_len))
 		return false;
 
-	// 🧠 Construct IV from per-packet nonce
+	// Construct IV from per-packet nonce
 	u8 iv[12] = {0};
 	u64 nonce = PACKET_CB(skb)->nonce;
-	memcpy(iv + 4, &nonce, sizeof(nonce)); // Use last 8 bytes
+	if (is_chacha)
+		memcpy(iv, &nonce, 8);
+	else
+		memcpy(iv + 4, &nonce, 8);
 
 	skcipher_request_set_crypt(request, sg, sg, skb->len, iv);
 

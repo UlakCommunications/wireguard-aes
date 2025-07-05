@@ -294,12 +294,14 @@ static int wg_newlink(struct net *src_net, struct net_device *dev,
 	struct wg_device *wg = netdev_priv(dev);
 	int ret = -ENOMEM;
 
-	wg->tfm_aes_gcm = crypto_alloc_skcipher("cbc(aes)", 0, 0);
+    bool is_chacha;
+
+	wg->tfm_aes_gcm = init_cipher_fallback(&is_chacha);
 	if (IS_ERR(wg->tfm_aes_gcm)) {
 		pr_debug("skcipher Failed\n");
 		return ret;
 	}
-
+    wg->is_chacha=is_chacha;
 	rcu_assign_pointer(wg->creating_net, src_net);
 	init_rwsem(&wg->static_identity.lock);
 	mutex_init(&wg->socket_update_lock);
@@ -460,4 +462,25 @@ void wg_device_uninit(void)
 	unregister_pm_notifier(&pm_notifier);
 #endif
 	rcu_barrier();
+}
+
+static struct crypto_skcipher *init_cipher_fallback(bool *is_chacha)
+{
+    struct crypto_skcipher *tfm;
+
+    tfm = crypto_alloc_skcipher("gcm(aes)", 0, 0);
+    if (!IS_ERR(tfm)) {
+        *is_chacha = false;
+        return tfm;
+    }
+
+    tfm = crypto_alloc_skcipher("chacha20-poly1305", 0, 0);
+    if (!IS_ERR(tfm)) {
+        pr_warn("Fallback to ChaCha20-Poly1305 due to AES-GCM unavailability\n");
+        *is_chacha = true;
+        return tfm;
+    }
+
+    pr_err("No supported cipher available\n");
+    return NULL;
 }

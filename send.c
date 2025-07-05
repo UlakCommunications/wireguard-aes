@@ -159,7 +159,7 @@ static unsigned int calculate_skb_padding(struct sk_buff *skb)
 	return padded_size - last_unit;
 }
 
-static bool encrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair, struct crypto_skcipher *tfm_aes_gcm)
+static bool encrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair, struct crypto_skcipher *tfm_aes_gcm, bool is_chacha)
 {
 	unsigned int padding_len, plaintext_len, trailer_len;
 	struct scatterlist sg[MAX_SKB_FRAGS + 8];
@@ -218,15 +218,20 @@ static bool encrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair, s
 	if (!request)
 		return false;
 
-	// 🔑 Use actual session key (AES-256)
-	u8 *key = keypair->sending.key;
-	if (crypto_skcipher_setkey(tfm_aes_gcm, key, 32))
+	// Use actual session key (AES-256)
+	u8 *key = is_chacha ? keypair->sending.chacha_key :keypair->sending.key;
+    size_t key_len = 32;
+	if (crypto_skcipher_setkey(tfm_aes_gcm, key, key_len))
 		return false;
 
-	// 🧠 Generate IV from per-packet nonce
+	// Generate IV from per-packet nonce
 	u8 iv[12] = {0};
 	u64 nonce = PACKET_CB(skb)->nonce;
-	memcpy(iv + 4, &nonce, sizeof(nonce));  // Use last 8 bytes
+
+    if (is_chacha)
+        memcpy(iv, &nonce, 8);       // 64-bit nonce
+    else
+        memcpy(iv + 4, &nonce, 8);   // GCM: pad first 4 bytes with zero
 
 	skcipher_request_set_crypt(request, sg, sg, plaintext_len, iv);
 	if (crypto_skcipher_encrypt(request) < 0) {
