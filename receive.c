@@ -274,6 +274,7 @@ static bool decrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair, s
 	num_frags = skb_cow_data(skb, 0, &trailer);
 	offset += sizeof(struct message_data);
 	skb_pull(skb, offset);
+
 	if (unlikely(num_frags < 0 || num_frags > ARRAY_SIZE(sg)))
 		return false;
 
@@ -281,31 +282,30 @@ static bool decrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair, s
 	if (skb_to_sgvec(skb, sg, 0, skb->len) <= 0)
 		return false;
 
-	struct skcipher_request* request;
-
-	u8 key[16];
-	memset(key, 1, sizeof(key));
-
-	// When providing a 16 byte key for an AES cipher handle, AES-128 is performed.
-	crypto_skcipher_setkey(tfm_aes_gcm, key, sizeof(key));
-	request = skcipher_request_alloc(tfm_aes_gcm, GFP_KERNEL);
+	struct skcipher_request* request = skcipher_request_alloc(tfm_aes_gcm, GFP_KERNEL);
 	if (!request)
 		return false;
 
-	u8 iv[12];
-	memset(iv, 1, sizeof(iv));
+	// 🔑 Use actual session key
+	u8 *key = keypair->receiving.key;
+	if (crypto_skcipher_setkey(tfm_aes_gcm, key, 32)) // AES-256
+		return false;
+
+	// 🧠 Construct IV from per-packet nonce
+	u8 iv[12] = {0};
+	u64 nonce = PACKET_CB(skb)->nonce;
+	memcpy(iv + 4, &nonce, sizeof(nonce)); // Use last 8 bytes
 
 	skcipher_request_set_crypt(request, sg, sg, skb->len, iv);
 
-	if (crypto_skcipher_decrypt(request) < 0)
+	if (crypto_skcipher_decrypt(request) < 0) {
+		skcipher_request_free(request);
 		return false;
+	}
 
 	skcipher_request_free(request);
 
-
-	/* Another ugly situation of pushing and pulling the header so as to
-	 * keep endpoint information intact.
-	 */
+	// Restore header and adjust trimmed tail
 	skb_push(skb, offset);
 	if (pskb_trim(skb, skb->len - noise_encrypted_len(0)))
 		return false;

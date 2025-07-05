@@ -15,3 +15,32 @@ This project is released under the [GPLv2](COPYING).
 cd run
 ./test_generic_single.sh <how_many_tunnels>
 ```
+# Charts
+
+
+
+
+```bash
+cd experimentation
+cat aes.tar.xz.part.* > aes.tar.xz
+tar -xf aes.tar.xz
+
+cat chacha.tar.xz.part.* > chacha.tar.xz
+tar -xf chacha.tar.xz
+
+docker compose up
+```
+
+After all dockers started, to insert all the experimentation output to DB;
+
+```python
+python3 ./pg.py
+```
+
+## Grafana
+
+```python
+http://localhost:33000/d/67_Z9zHIz1/localdash?orgId=1&
+```
+
+![retransmission_tcp.png](experimentation/retransmission_tcp.png)

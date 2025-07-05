@@ -73,7 +73,7 @@ ip netns exec $netnsright ip route add default dev $rightveth
 ip netns exec $netnsright ping -c 5 10.10.10.10 -I 10.20.20.10
 
 
-ip netns exec $netnsleft iperf3 -s -B 10.10.10.10 | grep 'SUM' &
+ip netns exec $netnsleft iperf3  -s -B 10.10.10.10 |  grep 'SUM' &
 waitiperf $netnsleft 
-ip netns exec $netnsright iperf3 -c 10.10.10.10 -B 10.20.20.10 -t 50 -P 128 -M 1310  | grep 'SUM'
+ip netns exec $netnsright iperf3 -c 10.10.10.10 -B 10.20.20.10 -t 50 -P 128  -M 9000  | grep 'SUM'
 

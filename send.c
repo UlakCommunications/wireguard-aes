@@ -214,25 +214,25 @@ static bool encrypt_packet(struct sk_buff *skb, struct noise_keypair *keypair, s
 			 noise_encrypted_len(plaintext_len)) <= 0)
 		return false;
 
-
-	struct skcipher_request *request;
-
-	u8 key[16];
-	memset(key, 1, sizeof(key));
-
-	// When providing a 16 byte key for an AES cipher handle, AES-128 is performed.
-	crypto_skcipher_setkey(tfm_aes_gcm, key, sizeof(key));
-	request = skcipher_request_alloc(tfm_aes_gcm, GFP_KERNEL);
+	struct skcipher_request *request = skcipher_request_alloc(tfm_aes_gcm, GFP_KERNEL);
 	if (!request)
 		return false;
 
-	u8 iv[12];
-	memset(iv, 1, sizeof(iv));
+	// 🔑 Use actual session key (AES-256)
+	u8 *key = keypair->sending.key;
+	if (crypto_skcipher_setkey(tfm_aes_gcm, key, 32))
+		return false;
+
+	// 🧠 Generate IV from per-packet nonce
+	u8 iv[12] = {0};
+	u64 nonce = PACKET_CB(skb)->nonce;
+	memcpy(iv + 4, &nonce, sizeof(nonce));  // Use last 8 bytes
 
 	skcipher_request_set_crypt(request, sg, sg, plaintext_len, iv);
-
-	if (crypto_skcipher_encrypt(request) < 0)
+	if (crypto_skcipher_encrypt(request) < 0) {
+		skcipher_request_free(request);
 		return false;
+	}
 
 	skcipher_request_free(request);
 
