@@ -13,16 +13,50 @@ reduction in CPU usage. Meanwhile, user-space AES (implementation
 can deliver up to 19.47% higher throughput on modern CPUs, achieving
 terabit-per-second speeds and greater efficiency with larger MTUs.
 
-## Building
+# Building
 
 **More information may be found at
 [WireGuard.com](https://www.wireguard.com/).**
 
-## License
+
+## Tools Required for the Kernel
+```bash
+sudo apt-get install git fakeroot build-essential ncurses-dev xz-utils libssl-dev bc flex libelf-dev bison
+```
+## Building on the Host Machine
+
+```bash
+ls /lib/modules/
+uname -a
+
+#>>>>Linux 483-LNX 6.8.0-59-generic #61~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 15 17:03:15 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+
+ls /lib/modules/6.8.0-59-generic
+
+```
+* If you provide the MayaOS headers to the `./build.sh` script (by extracting the `ci/5.10.55-amd64-vyos.zip` file to the same directory), it can be built for MayaOS (kernel version 5.15.55).
+* If you want to build it for another version, run `build_generic.sh` and make sure to obtain the corresponding kernel headers for that version.
+
+## Verifying the Build
+To check if the built code works:
+
+* Edit the `description` in `main.c`.
+* After loading the module, you can verify the change with:
+```bash
+moninfo wireguard 
+```
+
+## Build Command
+```bash
+./build.sh
+```
+
+
+# License
 
 This project is released under the [GPLv2](COPYING).
 
-## TEST
+# TEST
 
 ```bash
 cd run
