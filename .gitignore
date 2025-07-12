@@ -9,3 +9,4 @@
 *.swp
 wireguard.mod.c
 wireguard.mod
+./tmp/**
