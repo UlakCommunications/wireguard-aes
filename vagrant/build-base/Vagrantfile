@@ -1,0 +1,32 @@
+# -*- mode: ruby -*-
+# Builds the wgaes-base Vagrant box.
+# Run via:  cd vagrant && bash build-base.sh
+#
+# This box contains:
+#   - Ubuntu 22.04 LTS
+#   - Kernel 5.15.0-173-generic (booted)
+#   - wireguard-tools, iproute2, iputils-ping, iperf3
+# wireguard.ko is NOT baked in — copied from host at each vagrant up.
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/jammy64"
+  config.vm.synced_folder "../..", "/vagrant", type: "virtualbox"
+
+  config.vm.provider :virtualbox do |vb|
+    vb.memory = 1024
+    vb.cpus   = 2
+    vb.name   = "wgaes-base-builder"
+  end
+
+  # Step 1: install kernel 5.15, reboot
+  config.vm.provision "shell", path: "../01-install-kernel.sh", reboot: true
+
+  # Step 2: final cleanup
+  config.vm.provision "shell", inline: <<-SHELL
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+    dd if=/dev/zero of=/EMPTY bs=1M 2>/dev/null || true
+    rm -f /EMPTY
+    sync
+  SHELL
+end
