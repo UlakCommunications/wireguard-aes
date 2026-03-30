@@ -6,12 +6,8 @@ set -euo pipefail
 KERNEL="5.15.0-173-generic"
 
 echo "==> Current kernel: $(uname -r)"
-if [ "$(uname -r)" = "$KERNEL" ]; then
-    echo "==> Already on $KERNEL, skipping."
-    exit 0
-fi
 
-echo "==> Installing kernel $KERNEL and required packages..."
+echo "==> Installing required packages..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 apt-get install -y \
@@ -22,6 +18,11 @@ apt-get install -y \
     iproute2 \
     iputils-ping \
     iperf3
+
+if [ "$(uname -r)" = "$KERNEL" ]; then
+    echo "==> Already on $KERNEL, no reboot needed."
+    exit 0
+fi
 
 # Set GRUB to boot into the new kernel
 update-grub 2>/dev/null || true
