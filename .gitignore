@@ -9,3 +9,17 @@
 *.swp
 wireguard.mod.c
 wireguard.mod
+*.d
+.vagrant/
+vagrant/build-base/.vagrant/
+vagrant/keys/
+vagrant/wgaes-base.box
+tmp/
+wireguard-5.15.55/linux-signed*
+wireguard-5.15.55/main.c
+experimentation/aes/
+experimentation/chacha/
+experimentation/experiment_archieve/
+experimentation/grafana-data/plugins/
+experimentation/grafana_dash_bck/
+experimentation/history
