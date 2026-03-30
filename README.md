@@ -1,5 +1,8 @@
 # WireGuard with AES-256-GCM Hardware Acceleration
 
+> **Paper:** Yuce, M.F. et al. "WireGuard-AES: Hardware based encryption to WireGuard for VPN gateways", *SoftwareX*, 2025.
+> DOI: [10.1016/j.softx.2025.102314](https://doi.org/10.1016/j.softx.2025.102314)
+
 WireGuard uses ChaCha20-Poly1305 by default. On CPUs with AES-NI this leaves
 hardware acceleration unused. This project replaces the data-path cipher with
 AES-256-GCM (via the kernel `crypto_aead` API) while keeping the original
