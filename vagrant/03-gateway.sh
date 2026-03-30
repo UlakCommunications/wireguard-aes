@@ -7,6 +7,13 @@ KEYS="/vagrant/vagrant/keys"
 
 [ -f "$KEYS/private_gateway" ] || { echo "ERROR: keys not found. Run: bash vagrant/keygen.sh"; exit 1; }
 
+# ── virtio-net tuning (eth1 = internal NIC, index 2) ─────────────────────────
+ETH1=$(ip -o link | awk -F': ' '$3 ~ /ether/ {print $2}' | grep -v "^eth0$\|^lo$" | head -1)
+if [ -n "$ETH1" ]; then
+    ethtool -K "$ETH1" gso on gro on tso on 2>/dev/null || true
+    echo "==> virtio offload enabled on $ETH1"
+fi
+
 # ── WireGuard interface ───────────────────────────────────────────────────────
 ip link add wg0 type wireguard 2>/dev/null || true
 ip addr add 10.0.0.1/24 dev wg0 2>/dev/null || true

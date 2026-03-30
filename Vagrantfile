@@ -26,6 +26,8 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
     vb.memory = 1024
     vb.cpus   = 2
+    # virtio-net: paravirtualized NIC — 2-3x throughput vs emulated Intel
+    vb.customize ["modifyvm", :id, "--nictype2",   "virtio"]
     vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
   end
 
